@@ -184,6 +184,11 @@ vec4 operator*(const vec4 &v, double t)
 	return t * v;
 }
 
+vec4 operator*(const vec4& u, const vec4& v)
+{
+	return vec4(u.e[0] * v.e[0], u.e[1] * v.e[1], u.e[2] * v.e[2], u.e[3] * v.e[3]);
+}
+
 /* mat3 class member functions */
 mat3::mat3() {}
 vec3 mat3::operator[](int i)const { return rows[i]; }

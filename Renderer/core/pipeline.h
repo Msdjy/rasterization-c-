@@ -58,7 +58,7 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
 
 void model_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader);
 
-
+vec4 get_color(unsigned char* framebuffer, int x, int y);
 
 
 

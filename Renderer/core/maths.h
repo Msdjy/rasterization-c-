@@ -139,6 +139,7 @@ vec4 operator-(const vec4 &u, const vec4 &v);
 vec4 operator+(const vec4 &u, const vec4 &v);
 vec4 operator*(double t, const vec4 &v);
 vec4 operator*(const vec4 &v, double t);
+vec4 operator*(const vec4& u, const vec4& v);
 
 /* mat related functions */
 std::ostream& operator<<(std::ostream &out, const mat3 &m);

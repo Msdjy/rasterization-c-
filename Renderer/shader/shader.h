@@ -65,11 +65,13 @@ struct payload_varying {
 	vec3 position;
 	vec3 normal;
 	vec2 texcoords;
+
+	vec4 mvp_vertex_from_light;
 };
 
 struct payload_gl {
 
-	vec3 screen_vertexs;
+	float FragCoordz;
 };
 
 struct payload_attribute {

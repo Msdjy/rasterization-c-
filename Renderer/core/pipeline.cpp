@@ -32,6 +32,17 @@ static void set_color(unsigned char* framebuffer, int x, int y, vec4 color) {
     }
 }
 
+vec4 get_color(unsigned char* framebuffer, int x, int y) {
+    // color
+    vec4 color;
+
+    int index = ((WINDOW_HEIGHT - y - 1) * WINDOW_WIDTH + x) * 4;
+    for (int i = 0; i < 4; i++) {
+        color[i] = (float)(int)framebuffer[index + i] / 255.0f;
+    }
+    return color;
+}
+
 static vec3 HDR_ReinhardMap(vec3 color) {
     const float gamma = 2.2;
     vec3 hdrColor = color;
@@ -190,13 +201,20 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
                     float normalizer = 1.0 / (alpha / mvp_vertex3[0].w()
                                             + beta  / mvp_vertex3[1].w()
                                             + gamma / mvp_vertex3[2].w());
+                    if (mvp_vertex3[2].w() == 0)std::cout << "0" << std::endl;
                     //for larger z means away from camera, needs to interpolate z-value as a property			
-                    float z = (alpha * screen_vertex3[0].z() / mvp_vertex3[0].w()
-                             + beta  * screen_vertex3[1].z() / mvp_vertex3[1].w()
-                             + gamma * screen_vertex3[2].z() / mvp_vertex3[2].w()) * normalizer;
-
-                    if (zbuffer[get_index(i, j)] > z) {
-                        zbuffer[get_index(i, j)] = z;
+                    //float z =  (alpha * screen_vertex3[0].z() / mvp_vertex3[0].w()
+                    //         + beta  * screen_vertex3[1].z() / mvp_vertex3[1].w()
+                    //         + gamma * screen_vertex3[2].z() / mvp_vertex3[2].w()) * normalizer;
+                                         
+                    //float z =  (alpha * screen_vertex3[0].z() 
+                    //            +beta * screen_vertex3[1].z() 
+                    //            + gamma * screen_vertex3[2].z() ) * normalizer;
+                    float z = normalizer;
+                    float depth = -z;
+                    //float depth = -z;
+                    if (zbuffer[get_index(i, j)] > depth) {
+                        zbuffer[get_index(i, j)] = depth;
 
 
                         // 插值法向量，世界空间坐标，uv
@@ -206,9 +224,10 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
                         shader->varying.position = (alpha * vertex3[0] / mvp_vertex3[0].w()
                                                   + beta  * vertex3[1] / mvp_vertex3[1].w()
                                                   + gamma * vertex3[2] / mvp_vertex3[2].w()) * normalizer;
-                        shader->gl.screen_vertexs = (alpha * screen_vertex3[0] / mvp_vertex3[0].w()
-                                                    + beta * screen_vertex3[1] / mvp_vertex3[1].w()
-                                                    + gamma * screen_vertex3[2] / mvp_vertex3[2].w()) * normalizer;
+                        shader->varying.mvp_vertex_from_light = shader->uniform.light_vp_mat * shader->uniform.model_mat * shader->varying.position;
+                        shader->gl.FragCoordz = (alpha * screen_vertex3[0].z() / mvp_vertex3[0].w()
+                                                + beta * screen_vertex3[1].z() / mvp_vertex3[1].w()
+                                                + gamma * screen_vertex3[2].z() / mvp_vertex3[2].w()) * normalizer;
                         //vec2 texcoords = (alpha * shader->attribute.texcoords[id + 0] / mvp_vertex3[0].w()
                         //    + beta * shader->attribute.texcoords[id + 1] / mvp_vertex3[1].w()
                         //    + gamma * shader->attribute.texcoords[id + 2] / mvp_vertex3[2].w()) * normalizer;
@@ -239,23 +258,7 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
 
 // TODO可以优化成先顶点，再三角形的三个点
 void model_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader) {
-    //Model* model = shader->payload_shader.model;
-    //
-    //for (int i = 0; i < model->nfaces(); i++) {
-    //    for (int j = 0; j < 3; j++) {
-    //        shader->payload_shader.vertexs[j] = model->vert(i, j);
-    //        shader->payload_shader.normals[j] = model->normal(i, j);
-    //        shader->payload_shader.texcoords[j] = model->uv(i, j);
-    //        // TODO Q:报错，表达式必须是可修改的左值？
-    //        //payload_shader.vertexs = vertexs;
-    //        //payload_shader.normals = normals;
-    //        //payload_shader.texcoords = texcoords;
-    //    }
-    //    shader->vertex_shader();
 
-    //    triangle_draw(framebuffer, zbuffer, shader);
-    //}
-    //auto objects = shader->payload_shader.objects;
 
     int n = shader->attribute.vertexs.size();
     shader->varying.mvp_vertexs.resize(n);
@@ -269,14 +272,17 @@ void model_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader) {
     std::vector<vec3> screen_vertexs(n);
     std::vector<vec4> normals(n);
     
+
+
     for (int i = 0; i < n; i++)
     {
         // TODO 裁剪
-        // 
+        // 太过靠近物体有问题
 
 
         // NDC transformation
         // homogeneous division
+
         NDC_vertexs[i] = vec3(mvp_vertexs[i]) / mvp_vertexs[i].w();
 
 
@@ -284,9 +290,13 @@ void model_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader) {
         screen_vertexs[i][0] = 0.5 * (WINDOW_WIDTH - 1) * (NDC_vertexs[i][0] + 1.0);
         screen_vertexs[i][1] = 0.5 * (WINDOW_HEIGHT - 1) * (NDC_vertexs[i][1] + 1.0);
         //shader->payload_shader.screen_vertexs[i][2] = -shader->payload_shader.view_vertexs[i].z();	//view space z-value
-        //screen_vertexs[i][2] = -mvp_vertexs[i].w();	//view space z-value
+        //screen_vertexs[i][2] = mvp_vertexs[i].w();	//view space z-value
+        screen_vertexs[i][2] = (NDC_vertexs[i][2] + 1) / 2;	//view space z-value
+        //screen_vertexs[i][2] = (-50.0f - -0.1f) / 2 * NDC_vertexs[i][2] + (-0.1f + -50.0f) / 2;	//view space z-value
+        
+        //screen_vertexs[i][2] = -NDC_vertexs[i].z();	//view space z-value
         // TODO
-        screen_vertexs[i][2] = (-NDC_vertexs[i][2] + 1) / 2.0;	//view space z-value
+        //screen_vertexs[i][2] = (-NDC_vertexs[i][2] + 1) / 2.0;	//view space z-value
         // 这两个值是一样的，mvp空间的w值齐次坐标
         //std::cout << shader->payload_shader.view_vertexs[i].z() << "   " << shader->payload_shader.mvp_vertexs[i].w() << std::endl;
 

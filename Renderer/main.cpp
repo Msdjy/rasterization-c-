@@ -87,7 +87,7 @@ int main()
 		vec3(1, 1, 1), vec3(-1, 1, 1), vec3(1, -1, 1), vec3(-1, -1, 1),
 		vec3(-1, 1, -1), vec3(1, 1, -1), vec3(-1, -1, -1), vec3(1, -1, -1),
 		// ƽ̨
-		vec3(10, -1, -5),vec3(-5, -1, -5),vec3(10, -1, 3), vec3(-5, -1, 3)
+		vec3(5, -1, -5),vec3(-5, -1, -5),vec3(5, -1, 3), vec3(-5, -1, 3)
 	};
 
 	Triangle cube[] = {
@@ -110,14 +110,14 @@ int main()
 		Triangle(vertexs[7], vertexs[3], vertexs[6], &m_cube),
 	};
 	Triangle floor[] = {
-		//Triangle(vertexs[8], vertexs[9], vertexs[10], vec3(0), m_floot),
+		Triangle(vertexs[8], vertexs[9], vertexs[10], &m_floot),
 		Triangle(vertexs[10], vertexs[9], vertexs[11], &m_floot),
-		Triangle(vertexs[11], vertexs[9], vertexs[10], &m_floot),
+		//Triangle(vertexs[11], vertexs[9], vertexs[10], &m_floot),
 	};
 
 	Light* light1 = new Light;
 	light1->position = vec3(-7, 5, 5);
-	light1->power = vec3(1, 1, 1);
+	light1->power = vec3(2, 2, 2);
 	
 
 	// create camera

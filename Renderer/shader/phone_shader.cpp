@@ -25,6 +25,11 @@ void PhoneShader::vertex_shader() {
 	varying.normal_mat = uniform.model_mat.inverse_transpose();
 }
 
+float unpack(vec4 rgbaDepth) {
+	const vec4 bitShift = vec4(1.0, 1.0 / 256.0, 1.0 / (256.0 * 256.0), 1.0 / (256.0 * 256.0 * 256.0));
+	return dot(rgbaDepth, bitShift);
+}
+
 vec3 PhoneShader::fragment_shader() {
 	//std::cout << "PhoneShader fragment_shader" << std::endl;
 	//插值
@@ -34,7 +39,7 @@ vec3 PhoneShader::fragment_shader() {
 	//光源
 	//相机位姿
 	
-
+	
 
 	vec3 view_pos = uniform.camera->eye;
 	vec3 view_dir = normalize(view_pos - varying.position);
@@ -45,11 +50,23 @@ vec3 PhoneShader::fragment_shader() {
 	//std::cout << texcoords << std::endl;
 
 	vec3 color(0,0,0);
-	//vec3 amblient(0.1,0.1,0.1);
-	//color += amblient;
+	vec3 amblient(0.1,0.1,0.1);
+	color += amblient;
 
 	//light
 	for (auto light : uniform.lights) {
+		float visibility;
+
+		vec3 shadowCoord = varying.mvp_vertex_from_light.xyz() / varying.mvp_vertex_from_light.w();
+		shadowCoord = shadowCoord * 0.5 + 0.5;
+		int i = (WINDOW_WIDTH - 1) * (shadowCoord[0] );
+		int j = (WINDOW_HEIGHT - 1) * (shadowCoord[1]);
+		if (shadowCoord.x() > 1 || shadowCoord.x() < 0 || shadowCoord.y() > 1 || shadowCoord.y() < 0)continue;
+		//std::cout << shadowCoord<<" "<<i<<" "<<j << std::endl;
+		float depth = unpack(get_color(uniform.depthbuffer, i, j));
+		//std::cout << depth<<" "<< shadowCoord.z() << std::endl;
+		if (depth > shadowCoord.z())continue;
+
 		vec3 light_dir = normalize(light->position - varying.position);
 		vec3 half_dir = normalize(light_dir + view_dir);
 		//if (depth < (light->position - payload_shader.position).norm())continue;
