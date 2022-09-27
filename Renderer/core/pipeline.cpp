@@ -144,8 +144,8 @@ static int is_inside_triangle(float alpha, float beta, float gamma)
 // OpenGL会使用glViewPort内部的参数来将标准化设备坐标映射到屏幕坐标，每个坐标都关联了一个屏幕上的点（在我们的例子中是一个800x600的屏幕）。这个过程称为视口变换。
 
 // 光栅化
-static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader, float* depthbuffer, 
-    std::vector<vec3>& NDC_vertexs, std::vector<vec3>& screen_vertexs, std::vector<vec4>&  mvp_vertexs, std::vector<vec4>& normals) {
+static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader, 
+    std::vector<vec3>& NDC_vertexs,  std::vector<vec3>& screen_vertexs, std::vector<vec4>& mvp_vertexs, std::vector<vec4>& normals) {
     int n = shader->attribute.vertexs.size();
 
     // 设置遍历三角形
@@ -206,6 +206,9 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
                         shader->varying.position = (alpha * vertex3[0] / mvp_vertex3[0].w()
                                                   + beta  * vertex3[1] / mvp_vertex3[1].w()
                                                   + gamma * vertex3[2] / mvp_vertex3[2].w()) * normalizer;
+                        shader->gl.screen_vertexs = (alpha * screen_vertex3[0] / mvp_vertex3[0].w()
+                                                    + beta * screen_vertex3[1] / mvp_vertex3[1].w()
+                                                    + gamma * screen_vertex3[2] / mvp_vertex3[2].w()) * normalizer;
                         //vec2 texcoords = (alpha * shader->attribute.texcoords[id + 0] / mvp_vertex3[0].w()
                         //    + beta * shader->attribute.texcoords[id + 1] / mvp_vertex3[1].w()
                         //    + gamma * shader->attribute.texcoords[id + 2] / mvp_vertex3[2].w()) * normalizer;
@@ -235,7 +238,7 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
 
 
 // TODO可以优化成先顶点，再三角形的三个点
-void model_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader, float* depthbuffer) {
+void model_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader) {
     //Model* model = shader->payload_shader.model;
     //
     //for (int i = 0; i < model->nfaces(); i++) {
@@ -281,7 +284,9 @@ void model_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader, flo
         screen_vertexs[i][0] = 0.5 * (WINDOW_WIDTH - 1) * (NDC_vertexs[i][0] + 1.0);
         screen_vertexs[i][1] = 0.5 * (WINDOW_HEIGHT - 1) * (NDC_vertexs[i][1] + 1.0);
         //shader->payload_shader.screen_vertexs[i][2] = -shader->payload_shader.view_vertexs[i].z();	//view space z-value
-        screen_vertexs[i][2] = -mvp_vertexs[i].w();	//view space z-value
+        //screen_vertexs[i][2] = -mvp_vertexs[i].w();	//view space z-value
+        // TODO
+        screen_vertexs[i][2] = (-NDC_vertexs[i][2] + 1) / 2.0;	//view space z-value
         // 这两个值是一样的，mvp空间的w值齐次坐标
         //std::cout << shader->payload_shader.view_vertexs[i].z() << "   " << shader->payload_shader.mvp_vertexs[i].w() << std::endl;
 
@@ -289,7 +294,7 @@ void model_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader, flo
     }
 
 
-    triangle_draw(framebuffer, zbuffer, shader, depthbuffer, NDC_vertexs, screen_vertexs, mvp_vertexs, normals);
+    triangle_draw(framebuffer, zbuffer, shader, NDC_vertexs, screen_vertexs, mvp_vertexs, normals);
 
 
 

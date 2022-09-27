@@ -54,9 +54,9 @@ static std::tuple<float, float, float> compute_barycentric2D(float x, float y, v
 
 static int is_inside_triangle(float alpha, float beta, float gamma);
 
-static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader, float* depthbuffer);
+static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader);
 
-void model_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader, float* depthbuffer = nullptr);
+void model_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader);
 
 
 

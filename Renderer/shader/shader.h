@@ -67,6 +67,11 @@ struct payload_varying {
 	vec2 texcoords;
 };
 
+struct payload_gl {
+
+	vec3 screen_vertexs;
+};
+
 struct payload_attribute {
 
 	//
@@ -88,6 +93,7 @@ public:
 	payload_attribute attribute;
 	payload_uniform uniform;
 	payload_varying varying;
+	payload_gl gl;
 
 
 	virtual void vertex_shader() {

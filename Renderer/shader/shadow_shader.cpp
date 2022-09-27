@@ -23,12 +23,23 @@ void ShadowShader::vertex_shader() {
 	varying.normal_mat = uniform.model_mat.inverse_transpose();
 }
 
+//vec4 pack(float depth) {
+//	// pack函数是把一个32位的[0,1)之间的浮点数分成四份
+//	  // 使用rgba 4字节共32位来存储z值,1个字节精度为1/256
+//	const vec4 bitShift = vec4(1.0, 256.0, 256.0 * 256.0, 256.0 * 256.0 * 256.0);
+//	const vec4 bitMask = vec4(1.0 / 256.0, 1.0 / 256.0, 1.0 / 256.0, 0.0);
+//	// gl_FragCoord:片元的坐标,fract():返回数值的小数部分
+//	vec4 rgbaDepth = fract(depth * bitShift); //计算每个点的z值
+//	rgbaDepth -= rgbaDepth.gbaa * bitMask; // Cut off the value which do not fit in 8 bits
+//	return rgbaDepth;
+//}
+
 vec3 ShadowShader::fragment_shader() {
 	//std::cout << "ShadowShader vertex_shader" << std::endl;
 
 	vec3 color(0, 0, 0);
 
-
+	color = vec3((gl.screen_vertexs.z()));
 
 	return color;
 }

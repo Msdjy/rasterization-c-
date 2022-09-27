@@ -265,10 +265,12 @@ int main()
 		window->mouse_info.fv_delta = vec2(0, 0);
 
 		// send framebuffer to window 
+		//window_draw(depthbuffer);
 		window_draw(framebuffer);
 		msg_dispatch();
 	}
 
+	free(depthbuffer);
 	free(zbuffer);
 	free(framebuffer);
 	window_destroy();
