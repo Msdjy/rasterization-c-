@@ -221,9 +221,9 @@ int main()
 
 	shadow_shader->uniform.model_mat = model_mat;
 	shadow_shader->uniform.normal_mat = normal_mat;
-	shadow_shader->uniform.view_mat = view_mat;
-	shadow_shader->uniform.perspective_mat = perspective_mat;
-	shadow_shader->uniform.vp_mat = perspective_mat * view_mat;
+	shadow_shader->uniform.view_mat = light_view_mat;
+	shadow_shader->uniform.perspective_mat = light_perspective_mat;
+	shadow_shader->uniform.vp_mat = light_perspective_mat * light_view_mat;
 
 
 

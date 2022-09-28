@@ -65,21 +65,25 @@ struct payload_varying {
 
 	// world space point attributes
 	// fragment_shader - input
-	vec3 position;
-	vec3 normal;
-	vec2 texcoords;
+	vec3 FragPos;
+	vec3 Position_From_Light;
+	vec3 Normal;
+	//vec2 texcoords;
 
 
-	std::vector<vec3> positions;
+	std::vector<vec3> fragposes;
+	std::vector<vec3> positions_from_light;
 	std::vector<vec3> normals;
-	std::vector<vec3> texcoordss;
+	//std::vector<vec3> texcoordss;
 
 	//vec4 mvp_vertex_from_light;
 };
 
 struct payload_gl {
 	// out
-	std::vector<vec4> mvp_vertexs;
+	std::vector<vec4> positions;
+
+	vec4 Position;
 
 	// in
 	vec3 FragCoord;

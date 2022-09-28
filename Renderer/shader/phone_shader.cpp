@@ -19,13 +19,14 @@ void PhoneShader::vertex_shader() {
 	// only model matrix can change normal vector in world space ( Normal Matrix: tranverse(inverse(model)) )
 	
 	for (int i = 0; i < attribute.vertexs.size(); i++) {
-		gl.mvp_vertexs[i] = uniform.vp_mat * uniform.model_mat * vec4(attribute.vertexs[i]);
+		gl.positions[i] = uniform.vp_mat * uniform.model_mat * vec4(attribute.vertexs[i]);
 		// view空间坐标应该没用到
 		//payload_shader.view_vertexs[j] = payload_shader.view_mat * vertexs[j];
 		varying.normals[i] = uniform.normal_mat * vec4(attribute.normals[i]);
-	}
 
-	
+		varying.positions_from_light[i] = vec3(uniform.light_vp_mat * uniform.model_mat * vec4(attribute.vertexs[i]));
+		varying.fragposes[i] = vec3(uniform.model_mat * vec4(attribute.vertexs[i]));
+	}
 }
 
 float unpack(vec4 rgbaDepth) {
@@ -107,6 +108,7 @@ float shadow_visibility(vec3 shadowCoord, unsigned char* depthbuffer) {
 	float depth;
 	if (shadowCoord.x() > 1 || shadowCoord.x() < 0 || shadowCoord.y() > 1 || shadowCoord.y() < 0)depth = 0;
 	else depth = get_depth(shadowCoord, depthbuffer);
+
 	//float depth =  get_color(uniform.depthbuffer, shadowCoord.x()*(WINDOW_WIDTH - 1), shadowCoord.y()* (WINDOW_HEIGHT - 1)).z();
 
 	//std::cout << depth<<" "<< shadowCoord.z() << std::endl;
@@ -125,10 +127,10 @@ vec3 PhoneShader::fragment_shader() {
 		//纹理
 	//光源
 	//相机位姿
-
+	//return vec3(gl.FragCoord.z());
 	vec3 view_pos = uniform.camera->eye;
-	vec3 view_dir = normalize(view_pos - varying.position);
-
+	vec3 view_dir = normalize(view_pos - varying.FragPos);
+	//return varying.Position_From_Light;
 
 	//vec3 diffuse = texture_sample(texcoords, &payload_shader.model->diffuse());
 	vec3 diffuse = attribute.m.albedo;
@@ -145,20 +147,24 @@ vec3 PhoneShader::fragment_shader() {
 		vec3 light_dir = normalize(light->position);
 		vec3 half_dir = normalize(light_dir + view_dir);
 		
-		bias = std::max(0.001 * (1.0 - dot(varying.normal, light_dir)), 0.0001);
-		vec4 mvp_vertex_from_light = uniform.light_vp_mat * uniform.model_mat * varying.position;
-		vec3 shadowCoord = mvp_vertex_from_light.xyz() / mvp_vertex_from_light.w();
+		bias = std::max(0.001 * (1.0 - dot(varying.Normal, light_dir)), 0.0001);
+		vec4 mvp_from_light = varying.Position_From_Light;
+		// 这两相等
+		//std::cout << varying.Position_From_Light << " ads" << uniform.light_vp_mat * uniform.model_mat * varying.FragPos << "" << std::endl;
+		vec3 shadowCoord = mvp_from_light.xyz() / mvp_from_light.w();
 		shadowCoord = shadowCoord * 0.5 + 0.5;
+		shadowCoord[2] = 1 - shadowCoord[2];
 
 		float visibility = shadow_visibility(shadowCoord, uniform.depthbuffer);
+		//visibility = 1;
 		
 
-		float distance = (light->position - varying.position).norm();
+		float distance = (light->position - varying.FragPos).norm();
 		float attenuation = 1.0 / (light->constant + light->linear * distance + light->quadratic * (distance * distance));
 
-		float diff = std::max(dot(light_dir, varying.normal), 0.0);
+		float diff = std::max(dot(light_dir, varying.Normal), 0.0);
 
-		float spec = pow(std::max(dot(half_dir, varying.normal), 0.0), 128.0f);
+		float spec = pow(std::max(dot(half_dir, varying.Normal), 0.0), 128.0f);
 		//color += spec * diffuse * light->power * attenuation;
 		color += (spec+ diff)* light->power * attenuation * visibility;
 
