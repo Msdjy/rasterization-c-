@@ -1,6 +1,7 @@
 # Renderer
--
-github链接 [](https://github.com/Msdjy/rasterization-c-)。
+
+github链接 [https://github.com/Msdjy/rasterization-c-](https://github.com/Msdjy/rasterization-c-)
+
 主要文件结构
 - core
   - pipeline (管线，大致管线流程和着色器函数的调用)
