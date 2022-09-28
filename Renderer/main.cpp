@@ -187,6 +187,7 @@ int main()
 
 
 	// shader payload
+	// 可选择使用pbr或phone，渲染物体
 	IShader* shader = new PBRShader();
 	//IShader* shader = new PhoneShader();
 	IShader* shadow_shader = new ShadowShader();
