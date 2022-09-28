@@ -112,6 +112,9 @@ int main()
 	Triangle floor[] = {
 		Triangle(vertexs[8], vertexs[9], vertexs[10], &m_floot),
 		Triangle(vertexs[10], vertexs[9], vertexs[11], &m_floot),
+
+		Triangle(vertexs[10] + vec3(0, -0.1, 0), vertexs[9] + vec3(0, -0.1, 0), vertexs[8] + vec3(0, -0.1, 0), &m_floot),
+		Triangle(vertexs[11] + vec3(0, -0.1, 0), vertexs[9] + vec3(0, -0.1, 0), vertexs[10] + vec3(0, -0.1, 0), &m_floot),
 		//Triangle(vertexs[11], vertexs[9], vertexs[10], &m_floot),
 	};
 
@@ -128,15 +131,17 @@ int main()
 	float fov = 60;
 	float aspect = (float)(width) / height;
 	Camera camera(eye, target, up, aspect, fov);
-	float zNear = -0.1;
-	float zFar = -50;
+	float zNear = -1;
+	float zFar = -20;
 
 	// mvp
 	mat4 model_mat;
+	mat4 normal_mat;
 	mat4 view_mat;
 	mat4 perspective_mat;
 
 	model_mat		 = mat4::identity();
+	normal_mat = model_mat.inverse_transpose();
 	view_mat = mat4_lookat(camera.eye, camera.target, camera.up);
 	perspective_mat = mat4_perspective(fov, aspect, zNear, zFar);
 
@@ -153,9 +158,10 @@ int main()
 	mat4 light_perspective_mat;
 
 	light_view_mat = mat4_lookat(light1->position, camera.target, camera.up);
-	light_perspective_mat = mat4_perspective(fov, aspect, zNear, zFar);
-
-	light_perspective_mat = ortho_mat * light_perspective_mat;
+	//light_perspective_mat = mat4_perspective(fov, aspect, zNear, zFar);
+	// TODO 判断方向光和点光源
+	ortho_mat = mat4_ortho(-10.0f * aspect, 10.0f * aspect, -10.0f, 10.0f, zNear, zFar);
+	light_perspective_mat = ortho_mat ;
 
 
 	// shader payload
@@ -186,6 +192,7 @@ int main()
 	shader->uniform.light_vp_mat = light_perspective_mat * light_view_mat;
 
 	shader->uniform.model_mat = model_mat;
+	shader->uniform.normal_mat = normal_mat;
 	shader->uniform.view_mat = view_mat;
 	shader->uniform.perspective_mat = perspective_mat;
 	shader->uniform.vp_mat = perspective_mat * view_mat;
@@ -213,6 +220,7 @@ int main()
 	shadow_shader->uniform.light_vp_mat = light_perspective_mat * light_view_mat;
 
 	shadow_shader->uniform.model_mat = model_mat;
+	shadow_shader->uniform.normal_mat = normal_mat;
 	shadow_shader->uniform.view_mat = view_mat;
 	shadow_shader->uniform.perspective_mat = perspective_mat;
 	shadow_shader->uniform.vp_mat = perspective_mat * view_mat;

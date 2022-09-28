@@ -49,6 +49,7 @@ static void set_color(unsigned char* framebuffer, int x, int y, unsigned char co
 int get_index(int x, int y);
 
 static bool is_back_pace(vec3 pos[]);
+static bool is_front_pace(vec3 pos[]);
 
 static std::tuple<float, float, float> compute_barycentric2D(float x, float y, vec3 vertexs[]);
 

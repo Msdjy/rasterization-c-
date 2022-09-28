@@ -76,6 +76,20 @@ static bool is_back_pace(vec3 pos[]) {
     return signed_area <= 0;
 }
 
+static bool is_front_pace(vec3 pos[]) {
+    //vec3 ab = pos[1] - pos[0];
+    //vec3 bc = pos[2] - pos[1];
+    //return (cross(ab, bc)).norm() > 0.0f;
+    //TODO
+    vec3 a = pos[2];
+    vec3 b = pos[1];
+    vec3 c = pos[0];
+    float signed_area = a.x() * b.y() - a.y() * b.x() +
+        b.x() * c.y() - b.y() * c.x() +
+        c.x() * a.y() - c.y() * a.x();   //|AB AC|
+    return signed_area <= 0;
+}
+
 // TODO 
 //static void line(unsigned char* framebuffer, vec2 p0, vec2 p1, unsigned char color[]) {
 //    bool steep = false;
@@ -140,6 +154,27 @@ static int is_inside_triangle(float alpha, float beta, float gamma)
 //    return false;
 //}
 
+static std::tuple<int, int, int, int> get_AABB(vec3 screen_vertex3[])
+{
+    auto minx = std::min(screen_vertex3[0].x(), std::min(screen_vertex3[1].x(), screen_vertex3[2].x()));
+    auto maxx = std::max(screen_vertex3[0].x(), std::max(screen_vertex3[1].x(), screen_vertex3[2].x()));
+
+    auto miny = std::min(screen_vertex3[0].y(), std::min(screen_vertex3[1].y(), screen_vertex3[2].y()));
+    auto maxy = std::max(screen_vertex3[0].y(), std::max(screen_vertex3[1].y(), screen_vertex3[2].y()));
+
+    minx = (int)std::floor(minx); // 对x进行向下取整
+    maxx = (int)std::ceil(maxx); // 对y进行向上取整
+    miny = (int)std::floor(miny); // 对x进行向下取整
+    maxy = (int)std::ceil(maxy); // 对y进行向上取整
+
+    return {minx, maxx, miny, maxy};
+}
+static vec3 interpolate(float alpha, float beta, float gamma, const vec3(& vert3)[], const vec4(&mvp_vertex3)[], float weight)
+{
+    return (alpha * vert3[0] / mvp_vertex3[0].w() + beta * vert3[1] / mvp_vertex3[1].w() + gamma * vert3[2] / mvp_vertex3[2].w() ) * weight;
+}
+
+
 
 // 由投影矩阵创建的观察箱(Viewing Box)被称为平截头体(Frustum)，每个出现在平截头体范围内的坐标都会最终出现在用户的屏幕上。
 // 将特定范围内的坐标转化到标准化设备坐标系的过程（而且它很容易被映射到2D观察空间坐标）被称之为投影(Projection)，因为使用投影矩阵能将3D坐标投影(Project)到很容易映射到2D的标准化设备坐标系中。
@@ -156,34 +191,31 @@ static int is_inside_triangle(float alpha, float beta, float gamma)
 
 // 光栅化
 static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader, 
-    std::vector<vec3>& NDC_vertexs,  std::vector<vec3>& screen_vertexs, std::vector<vec4>& mvp_vertexs, std::vector<vec4>& normals) {
+    std::vector<vec3>& NDC_vertexs,  std::vector<vec3>& screen_vertexs) {
+
     int n = shader->attribute.vertexs.size();
+
+
 
     // 设置遍历三角形
     for (int id = 0; id < n; id = id + 3)
     {
         vec3 NDC_vertexs3[3] = { NDC_vertexs[id + 0], NDC_vertexs[id + 1], NDC_vertexs[id + 2] };
-        if (is_back_pace(NDC_vertexs3)) {
+
+        // 背面剔除 / 渲染depthbuffer时正面剔除
+        if (  (is_back_pace(NDC_vertexs3) && (!shader->is_shadow_shader) ) || (is_front_pace(NDC_vertexs3) && (shader->is_shadow_shader)) ) {
             continue;
         }
         vec3 screen_vertex3[3] = { screen_vertexs[id + 0], screen_vertexs[id + 1], screen_vertexs[id + 2] };
-        vec4 mvp_vertex3[3] = { mvp_vertexs[id + 0], mvp_vertexs[id + 1], mvp_vertexs[id + 2] };
-       
-        vec3 normal3[3] = { normals[id + 0], normals[id + 1], normals[id + 2] };
+
+        vec4 mvp_vertex3[3] = { shader->gl.mvp_vertexs[id + 0], shader->gl.mvp_vertexs[id + 1], shader->gl.mvp_vertexs[id + 2] };
+        vec3 normal3[3] = { shader->varying.normals[id + 0], shader->varying.normals[id + 1], shader->varying.normals[id + 2] };
         vec3 vertex3[3] = { shader->attribute.vertexs[id + 0], shader->attribute.vertexs[id + 1], shader->attribute.vertexs[id + 2] };
 
 
         // AABB BOX
-        auto minx = std::min(screen_vertex3[0].x(), std::min(screen_vertex3[1].x(), screen_vertex3[2].x()));
-        auto maxx = std::max(screen_vertex3[0].x(), std::max(screen_vertex3[1].x(), screen_vertex3[2].x()));
-                                                                                                 
-        auto miny = std::min(screen_vertex3[0].y(), std::min(screen_vertex3[1].y(), screen_vertex3[2].y()));
-        auto maxy = std::max(screen_vertex3[0].y(), std::max(screen_vertex3[1].y(), screen_vertex3[2].y()));
+        auto [minx, maxx, miny, maxy] = get_AABB(screen_vertex3);
 
-        minx = (int)std::floor(minx); // 对x进行向下取整
-        maxx = (int)std::ceil(maxx); // 对y进行向上取整
-        miny = (int)std::floor(miny); // 对x进行向下取整
-        maxy = (int)std::ceil(maxy); // 对y进行向上取整
 
 
         //std::cout << vertexs[1] << std::endl;
@@ -218,19 +250,30 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
 
 
                         // 插值法向量，世界空间坐标，uv
-                        shader->varying.normal = (alpha * normal3[0] / mvp_vertex3[0].w()
-                                                + beta  * normal3[1] / mvp_vertex3[1].w()
-                                                + gamma * normal3[2] / mvp_vertex3[2].w()) * normalizer;
-                        shader->varying.position = (alpha * vertex3[0] / mvp_vertex3[0].w()
-                                                  + beta  * vertex3[1] / mvp_vertex3[1].w()
-                                                  + gamma * vertex3[2] / mvp_vertex3[2].w()) * normalizer;
-                        shader->varying.mvp_vertex_from_light = shader->uniform.light_vp_mat * shader->uniform.model_mat * shader->varying.position;
-                        shader->gl.FragCoordz = (alpha * screen_vertex3[0].z() / mvp_vertex3[0].w()
-                                                + beta * screen_vertex3[1].z() / mvp_vertex3[1].w()
-                                                + gamma * screen_vertex3[2].z() / mvp_vertex3[2].w()) * normalizer;
-                        //vec2 texcoords = (alpha * shader->attribute.texcoords[id + 0] / mvp_vertex3[0].w()
-                        //    + beta * shader->attribute.texcoords[id + 1] / mvp_vertex3[1].w()
-                        //    + gamma * shader->attribute.texcoords[id + 2] / mvp_vertex3[2].w()) * normalizer;
+
+                        shader->varying.normal = interpolate(alpha, beta, gamma, normal3, mvp_vertex3, normalizer);
+
+                        shader->varying.position = interpolate(alpha, beta, gamma, vertex3, mvp_vertex3, normalizer);
+
+                        shader->gl.FragCoord = interpolate(alpha, beta, gamma, screen_vertex3, mvp_vertex3, normalizer);
+
+                        // Vertex Shader
+                        //varying vec4 position;
+                        //void main(void)
+                        //{
+                        //    position = gl_ModelViewMatrix * gl_Vertex;
+                        //    gl_Position = ftransform();
+                        //}
+                        //// Fragment Shader
+                        //uniform float zFar;
+                        //uniform float zNear;
+                        //varying vec4 position;
+                        //void main()
+                        //{
+                        //    float zDiff = zFar - zNear;
+                        //    float interpolatedDepth = (position.w / position.z) * zFar * zNear / zDiff + 0.5 * (zFar + zNear) / zDiff + 0.5;
+                        //    gl_FragColor = vec4(vec3(pow(interpolatedDepth, 15.0)), 1.0);
+                        //}
 
 
                         //插值
@@ -261,29 +304,27 @@ void model_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader) {
 
 
     int n = shader->attribute.vertexs.size();
-    shader->varying.mvp_vertexs.resize(n);
+    shader->gl.mvp_vertexs.resize(n);
+    shader->varying.normals.resize(n);
 
     // 顶点着色器 mvp变换
     shader->vertex_shader();
 
 
-    auto mvp_vertexs = shader->varying.mvp_vertexs;
+    
     std::vector<vec3> NDC_vertexs(n);
     std::vector<vec3> screen_vertexs(n);
-    std::vector<vec4> normals(n);
-    
-
 
     for (int i = 0; i < n; i++)
     {
         // TODO 裁剪
-        // 太过靠近物体有问题
+        // 太过靠近物体有问题,透视除法除0问题
 
 
         // NDC transformation
         // homogeneous division
 
-        NDC_vertexs[i] = vec3(mvp_vertexs[i]) / mvp_vertexs[i].w();
+        NDC_vertexs[i] = vec3(shader->gl.mvp_vertexs[i]) / shader->gl.mvp_vertexs[i].w();
 
 
         // 屏幕空间映射
@@ -300,11 +341,10 @@ void model_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader) {
         // 这两个值是一样的，mvp空间的w值齐次坐标
         //std::cout << shader->payload_shader.view_vertexs[i].z() << "   " << shader->payload_shader.mvp_vertexs[i].w() << std::endl;
 
-        normals[i] = shader->varying.normal_mat * vec4(shader->attribute.normals[i]);
+        
     }
 
-
-    triangle_draw(framebuffer, zbuffer, shader, NDC_vertexs, screen_vertexs, mvp_vertexs, normals);
+    triangle_draw(framebuffer, zbuffer, shader, NDC_vertexs, screen_vertexs);
 
 
 
