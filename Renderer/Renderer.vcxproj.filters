@@ -51,6 +51,12 @@
     <ClCompile Include="shader\shadow_shader.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="shader\light_shader.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="shader\shader.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="platform\win32.h">

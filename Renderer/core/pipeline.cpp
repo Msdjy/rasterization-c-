@@ -43,12 +43,13 @@ vec4 get_color(unsigned char* framebuffer, int x, int y) {
     return color;
 }
 
-static vec3 HDR_ReinhardMap(vec3 color) {
+static vec4 HDR_ReinhardMap(vec4 color) {
+
     const float gamma = 2.2;
-    vec3 hdrColor = color;
+    vec4 hdrColor = color;
 
     //// Reinhard色调映射
-    vec3 mapped;
+    vec4 mapped = hdrColor;
     for (int w = 0; w < 3; w++) {
         mapped[w] = hdrColor[w] / (hdrColor[w] + 1.0f);
         mapped[w] = std::pow(mapped[w], 1.0 / gamma);
@@ -196,19 +197,18 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
 
     int n = shader->attribute.vertexs.size();
 
-
-
     // 设置遍历三角形
     for (int id = 0; id < n; id = id + 3)
     {
-
-
+        // 选取三角形三个点的不同坐标空间下的值NDC_vertexs3，screen_vertex3等
         vec3 NDC_vertexs3[3] = { NDC_vertexs[id + 0], NDC_vertexs[id + 1], NDC_vertexs[id + 2] };
 
         // 背面剔除 / 渲染depthbuffer时正面剔除
         if (  (is_back_pace(NDC_vertexs3) && (!shader->is_shadow_shader) ) || (is_front_pace(NDC_vertexs3) && (shader->is_shadow_shader)) ) {
             continue;
         }
+
+        // 选取三角形三个点的不同坐标空间下的值NDC_vertexs3，screen_vertex3等
         vec3 screen_vertex3[3] = { screen_vertexs[id + 0], screen_vertexs[id + 1], screen_vertexs[id + 2] };
 
         vec4 position3[3] = { shader->gl.positions[id + 0], shader->gl.positions[id + 1], shader->gl.positions[id + 2] };
@@ -226,23 +226,15 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
                 // 求屏幕空间中的重心坐标
                 auto [alpha, beta, gamma] = compute_barycentric2D((float)(i + 0.5), (float)(j + 0.5), screen_vertex3);
                 if (alpha > 0 && beta > 0 && gamma > 0) {
-
                     // interpolation correct term
-                    // 这边的修正也是用了真实空间的深度值，mvp空间的w值齐次坐标
+                    // 修正用了真实空间的深度值，mvp空间的w值齐次坐标
                     float normalizer = 1.0 / (alpha / position3[0].w()
                                             + beta  / position3[1].w()
                                             + gamma / position3[2].w());
-                    if (position3[2].w() == 0)std::cout << "0" << std::endl;
+
                     //for larger z means away from camera, needs to interpolate z-value as a property			
-                    //float z =  (alpha * screen_vertex3[0].z() / mvp_vertex3[0].w()
-                    //         + beta  * screen_vertex3[1].z() / mvp_vertex3[1].w()
-                    //         + gamma * screen_vertex3[2].z() / mvp_vertex3[2].w()) * normalizer;
-                                         
-                    //float z =  (alpha * screen_vertex3[0].z() 
-                    //            +beta * screen_vertex3[1].z() 
-                    //            + gamma * screen_vertex3[2].z() ) * normalizer;
-
-
+                    // TODO（屏幕空间深度值应该可以直接用世界坐标的深度值算出来）
+                    // 计算插值点的gl.FragCoord   
                     vec3 vertex3[3] = { shader->attribute.vertexs[id + 0], shader->attribute.vertexs[id + 1], shader->attribute.vertexs[id + 2] };
                     auto world_pos = interpolate(alpha, beta, gamma, vertex3, position3, normalizer);
                     auto mvp_ = shader->uniform.vp_mat * shader->uniform.model_mat * world_pos;
@@ -252,10 +244,8 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
                     shader->gl.FragCoord[2] = 0.5 * ndc_[2] + 0.5;
                     shader->gl.FragCoord[2] = 1 - shader->gl.FragCoord[2];
                     shader->gl.FragCoord[3] = 1 / mvp_.w();
-                    // TODO 这个有问题
-                    //shader->gl.FragCoord = interpolate(alpha, beta, gamma, screen_vertex3, position3, normalizer);
+
                     float depth = shader->gl.FragCoord.z();
-                    //float depth = -z;
                     if (zbuffer[get_index(i, j)] > depth) {
                         zbuffer[get_index(i, j)] = depth;
 
@@ -264,8 +254,7 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
                         shader->varying.FragPos = interpolate(alpha, beta, gamma, fragpose3, position3, normalizer);
                         shader->varying.Position_From_Light = interpolate(alpha, beta, gamma, position3_from_light, position3, normalizer);
                         
-                        
-                        
+                        // 片段着色器一般需要的变量
                         //插值
                             //顶点法向量
                             //顶点vu值
@@ -273,31 +262,18 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
                         //光源
                         //相机位姿
                         vec4 color = shader->fragment_shader();
-                        // color
-                        set_color(framebuffer, i, j, color);
 
-                        //shader->varying.Normal = interpolate(alpha, beta, gamma, normal3, position3, normalizer);
-                        //shader->varying.FragPos = interpolate(alpha, beta, gamma, fragpose3, position3, normalizer);
-                        //shader->varying.Position_From_Light = interpolate(alpha, beta, gamma, position3_from_light, position3, normalizer);
-                        //shader->varying.FragPos = interpolate(alpha, beta, gamma, fragpose3, position3, normalizer);
+                        set_color(framebuffer, i, j, color);
                     }
                 }
 
             }
         }
-
-
     }
-
-       
-    
 }
 
 
-
-// TODO可以优化成先顶点，再三角形的三个点
 void model_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader) {
-
 
     int n = shader->attribute.vertexs.size();
     // gl_position是mvp空间的点
@@ -309,11 +285,9 @@ void model_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader) {
     // 顶点着色器 mvp变换
     shader->vertex_shader();
 
-
-    
+    // 管线的中间变量
     std::vector<vec3> NDC_vertexs(n);
     std::vector<vec3> screen_vertexs(n);
-
     for (int i = 0; i < n; i++)
     {
         // TODO 裁剪
@@ -322,63 +296,21 @@ void model_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader) {
 
         // NDC transformation
         // homogeneous division
-
         NDC_vertexs[i] = vec3(shader->gl.positions[i]) / shader->gl.positions[i].w();
-
 
         // 屏幕空间映射
         screen_vertexs[i][0] = (WINDOW_WIDTH - 1) * (0.5 * NDC_vertexs[i][0] + 0.5);
         screen_vertexs[i][1] = (WINDOW_HEIGHT - 1) * (0.5 * NDC_vertexs[i][1] + 0.5);
-        //shader->payload_shader.screen_vertexs[i][2] = -shader->payload_shader.view_vertexs[i].z();	//view space z-value
-        //screen_vertexs[i][2] = mvp_vertexs[i].w();	//view space z-value
-        screen_vertexs[i][2] = (NDC_vertexs[i][2] * 0.5 + 0.5);	//view space z-value
-        screen_vertexs[i][2] = 1 - screen_vertexs[i][2];
-        //screen_vertexs[i][2] = (-50.0f - -0.1f) / 2 * NDC_vertexs[i][2] + (-0.1f + -50.0f) / 2;	//view space z-value
-        
-        //screen_vertexs[i][2] = -NDC_vertexs[i].z();	//view space z-value
-        // TODO
-        //screen_vertexs[i][2] = (-NDC_vertexs[i][2] + 1) / 2.0;	//view space z-value
-        // 这两个值是一样的，mvp空间的w值齐次坐标
-        //std::cout << shader->payload_shader.view_vertexs[i].z() << "   " << shader->payload_shader.mvp_vertexs[i].w() << std::endl;
 
-        
+        screen_vertexs[i][2] = (NDC_vertexs[i][2] * 0.5 + 0.5);	//view space z-value
+        // ndc的近平面在正，远平面在负，相对于深度值，远平面应该更大，1-屏幕空间的深度值，
+        screen_vertexs[i][2] = 1 - screen_vertexs[i][2];
     }
 
     triangle_draw(framebuffer, zbuffer, shader, NDC_vertexs, screen_vertexs);
 
-
-
-    // TODO 球体怎么画
-    //for (int i = 0; i < shader->payload_shader.objects.size(); i++) {
-    //    for (int j = 0; j < 3; j++) {
-    //        shader->payload_shader.vertexs[j] = model->vert(i, j);
-    //        shader->payload_shader.normals[j] = model->normal(i, j);
-    //        shader->payload_shader.texcoords[j] = model->uv(i, j);
-    //        // TODO Q:报错，表达式必须是可修改的左值？
-    //        //payload_shader.vertexs = vertexs;
-    //        //payload_shader.normals = normals;
-    //        //payload_shader.texcoords = texcoords;
-    //    }
-    //    shader->vertex_shader();
-
-    //    triangle_draw(framebuffer, zbuffer, shader);
-    //}
 }
 
 
-
-// 按光线方向 取环境贴图的颜色
-vec3 get_mapColor(vec3 dir) {
-    if (dir.y() == 1.0f || dir.y() == -1.0f)return vec3(1, 1, 1);
-    float cosb = dir.y();
-    float cosa = dot(normalize(vec3(dir.x(), 0, dir.z())), vec3(1, 0, 0));
-    float angle_b = acos(cosb);
-    float angle_a = acos(cosa);
-    angle_a = dir.z() < 0 ? angle_a : angle_a + 2.0f * PI - 2.0f * angle_a;
-    int j = angle_b / PI * envmap_height;
-    int i = angle_a / 2.0f / PI * envmap_width;
-    
-    return envmap[j * envmap_width + i];
-}
 
 

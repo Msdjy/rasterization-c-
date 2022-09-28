@@ -34,7 +34,7 @@ extern window_t* window;
 
 int window_init(int width, int height, const char *title);
 int window_destroy();
-void window_draw(unsigned char *framebuffer);
+void window_draw(unsigned char *framebuffer, const int& num_frames);
 void msg_dispatch();
 vec2 get_mouse_pos();
 float platform_get_time(void);

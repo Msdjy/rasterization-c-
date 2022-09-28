@@ -142,8 +142,10 @@
     <ClCompile Include="core\tgaimage.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="platform\win32.cpp" />
+    <ClCompile Include="shader\light_shader.cpp" />
     <ClCompile Include="shader\phone_shader.cpp" />
     <ClCompile Include="shader\pbr_shader.cpp" />
+    <ClCompile Include="shader\shader.cpp" />
     <ClCompile Include="shader\shadow_shader.cpp" />
   </ItemGroup>
   <ItemGroup>

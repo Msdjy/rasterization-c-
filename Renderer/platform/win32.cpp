@@ -2,6 +2,8 @@
 
 #include <cassert>
 #include <cstdio>
+#include <string>
+#include <atlstr.h>
 
 window_t* window = NULL;
 
@@ -201,7 +203,7 @@ void msg_dispatch()
 	}
 }
 
-static void window_display() 
+static void window_display(const int& num_frames)
 {
 	LOGFONT logfont; //改变输出字体
 	ZeroMemory(&logfont, sizeof(LOGFONT));
@@ -216,9 +218,11 @@ static void window_display()
 	SetBkColor(window->mem_dc, RGB(80, 80, 80));
 	//TextOut(window->mem_dc, 300, 50, "Project Name:SRender", strlen("Project Name:SRender"));
 	//TextOut(window->mem_dc, 300, 80, "Author:Lei", strlen("Author:Lei Sun"));
+	CString str;
+	str.Format(_T("fps : %d"), num_frames);
 	TextOut(window->mem_dc, 20, 20, 
-		"control:hold left buttion to rotate, right button to pan", 
-		strlen("Control:hold left buttion to rotate, right button to pan"));
+		str,
+		strlen(str));
 
 	// 把兼容性DC的数据传到真正的DC上
 	BitBlt(hDC, 0, 0, window->width, window->height, window->mem_dc, 0, 0, SRCCOPY);
@@ -226,7 +230,7 @@ static void window_display()
 	
 }
 
-void window_draw(unsigned char *framebuffer)
+void window_draw(unsigned char *framebuffer, const int& num_frames)
 {
 	for (int i = 0; i < window->height; i++)
 	{
@@ -238,7 +242,7 @@ void window_draw(unsigned char *framebuffer)
 			window->window_fb[index + 2] = framebuffer[index];
 		}
 	}
-	window_display();
+	window_display(num_frames);
 }
 
 vec2 get_mouse_pos()

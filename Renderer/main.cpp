@@ -79,9 +79,11 @@ int main()
 
 	// Material(float ior, float roughness, float metallic, vec3 albedo, MaterialType t = DIFFUSE)
 
-	Material      m_cube = { 2, 0.1, 1, vec3(0.8f,0.6f,0.5f),	MICROFACET };
-	Material      m_floot = { 2, 0.5, 0, vec3(0.3f,0.3f,0.3f),	MICROFACET };
+	// 设置材质
+	Material      m_cube = { 20, 0.1, 0.5, vec3(0.8f,0.6f,0.1f),	MICROFACET };
+	Material      m_floor = { 20, 0.5, 0, vec3(0.1f,0.5f,0.0f),	MICROFACET };
 
+	// 设置顶点
 	vec3 vertexs[12] = {
 		// cube
 		vec3(1, 1, 1), vec3(-1, 1, 1), vec3(1, -1, 1), vec3(-1, -1, 1),
@@ -110,21 +112,40 @@ int main()
 		Triangle(vertexs[7], vertexs[3], vertexs[6], &m_cube),
 	};
 	Triangle floor[] = {
-		Triangle(vertexs[8], vertexs[9], vertexs[10], &m_floot),
-		Triangle(vertexs[10], vertexs[9], vertexs[11], &m_floot),
+		Triangle(vertexs[8], vertexs[9], vertexs[10], &m_floor),
+		Triangle(vertexs[10], vertexs[9], vertexs[11], &m_floor),
 
-		Triangle(vertexs[10] + vec3(0, -0.1, 0), vertexs[9] + vec3(0, -0.1, 0), vertexs[8] + vec3(0, -0.1, 0), &m_floot),
-		Triangle(vertexs[11] + vec3(0, -0.1, 0), vertexs[9] + vec3(0, -0.1, 0), vertexs[10] + vec3(0, -0.1, 0), &m_floot),
+		Triangle(vertexs[10] + vec3(0, -0.1, 0), vertexs[9] + vec3(0, -0.1, 0), vertexs[8] + vec3(0, -0.1, 0), &m_floor),
+		Triangle(vertexs[11] + vec3(0, -0.1, 0), vertexs[9] + vec3(0, -0.1, 0), vertexs[10] + vec3(0, -0.1, 0), &m_floor),
 		//Triangle(vertexs[11], vertexs[9], vertexs[10], &m_floot),
 	};
 
+
+	std::vector<vec3> vertexs_cube;
+	std::vector<vec3> normals_cube;
+	for (auto& triangle : cube) {
+		for (auto vertex : triangle.vertexs) {
+			(vertexs_cube).push_back(vertex);
+			(normals_cube).push_back(triangle.normal);
+		}
+	}
+	std::vector<vec3> vertexs_floor;
+	std::vector<vec3> normals_floor;
+	for (auto& triangle : floor) {
+		for (auto vertex : triangle.vertexs) {
+			(vertexs_floor).push_back(vertex);
+			(normals_floor).push_back(triangle.normal);
+		}
+	}
+
+
+	// light
 	Light* light1 = new Light;
 	light1->position = vec3(-7, 5, 5);
-	light1->power = vec3(2, 2, 2);
+	light1->power = vec3(3, 3, 3);
 	
-
 	// create camera
-	vec3 eye(0, 0, 10);
+	vec3 eye(3, 3, 15);
 	vec3 target(0, 0, 0);
 	//target = eye + target;
 	vec3 up(0, 1, 0);
@@ -133,6 +154,7 @@ int main()
 	Camera camera(eye, target, up, aspect, fov);
 	float zNear = -1;
 	float zFar = -20;
+
 
 	// mvp
 	mat4 model_mat;
@@ -165,66 +187,69 @@ int main()
 
 
 	// shader payload
-	//IShader* shader = new PBRShader();
-	IShader* shader = new PhoneShader();
+	IShader* shader = new PBRShader();
+	//IShader* shader = new PhoneShader();
 	IShader* shadow_shader = new ShadowShader();
+	IShader* light_shader = new LightShader();
 
-	for (auto& triangle : cube) {
-		for (auto vertex : triangle.vertexs) {
-			(shader->attribute.vertexs).push_back(vertex);
-			(shader->attribute.normals).push_back(triangle.normal);
+
+	// 物体渲染所需要的参数
+		shader->uniform.lights.push_back(light1);
+		shader->uniform.camera = &camera;
+
+		shader->uniform.light_view_mat = light_view_mat;
+		shader->uniform.light_perspective_mat = light_perspective_mat;
+		shader->uniform.light_vp_mat = light_perspective_mat * light_view_mat;
+
+		shader->uniform.model_mat = model_mat;
+		shader->uniform.normal_mat = normal_mat;
+		shader->uniform.view_mat = view_mat;
+		shader->uniform.perspective_mat = perspective_mat;
+		shader->uniform.vp_mat = perspective_mat * view_mat;
+	// 
+
+	// 光源渲染所需要的参数
+		light_shader->uniform.camera = &camera;
+		model_mat = mat4_scale(0.5,0.5,0.5);
+		model_mat = mat4_translate(light1->position.x(), light1->position.y(), light1->position.z()) * model_mat;
+		light_shader->uniform.model_mat = model_mat;
+		light_shader->uniform.normal_mat = normal_mat;
+		light_shader->uniform.view_mat = view_mat;
+		light_shader->uniform.perspective_mat = perspective_mat;
+		light_shader->uniform.vp_mat = perspective_mat * view_mat;
+
+		light_shader->attribute.vertexs = vertexs_cube;
+	//
+
+
+	// shadow_shader所需要的参数
+		for (auto& triangle : cube) {
+			for (auto vertex : triangle.vertexs) {
+				(shadow_shader->attribute.vertexs).push_back(vertex);
+				(shadow_shader->attribute.normals).push_back(triangle.normal);
+			}
 		}
-	}
-	for (auto& triangle : floor) {
-		for (auto vertex : triangle.vertexs) {
-			(shader->attribute.vertexs).push_back(vertex);
-			(shader->attribute.normals).push_back(triangle.normal);
-		}
-			
-	}
-
-
-	shader->uniform.lights.push_back(light1);
-	shader->uniform.camera = &camera;
-
-	shader->uniform.light_view_mat = light_view_mat;
-	shader->uniform.light_perspective_mat = light_perspective_mat;
-	shader->uniform.light_vp_mat = light_perspective_mat * light_view_mat;
-
-	shader->uniform.model_mat = model_mat;
-	shader->uniform.normal_mat = normal_mat;
-	shader->uniform.view_mat = view_mat;
-	shader->uniform.perspective_mat = perspective_mat;
-	shader->uniform.vp_mat = perspective_mat * view_mat;
-
-	for (auto& triangle : cube) {
-		for (auto vertex : triangle.vertexs) {
-			(shadow_shader->attribute.vertexs).push_back(vertex);
-			(shadow_shader->attribute.normals).push_back(triangle.normal);
-		}
-	}
-	for (auto& triangle : floor) {
-		for (auto vertex : triangle.vertexs) {
-			(shadow_shader->attribute.vertexs).push_back(vertex);
-			(shadow_shader->attribute.normals).push_back(triangle.normal);
+		for (auto& triangle : floor) {
+			for (auto vertex : triangle.vertexs) {
+				(shadow_shader->attribute.vertexs).push_back(vertex);
+				(shadow_shader->attribute.normals).push_back(triangle.normal);
+			}
 		}
 
-	}
+		shadow_shader->uniform.lights.push_back(light1);
+		shadow_shader->uniform.camera = &camera;
 
+		shadow_shader->uniform.light_view_mat = light_view_mat;
+		shadow_shader->uniform.light_perspective_mat = light_perspective_mat;
+		shadow_shader->uniform.light_vp_mat = light_perspective_mat * light_view_mat;
 
-	shadow_shader->uniform.lights.push_back(light1);
-	shadow_shader->uniform.camera = &camera;
-
-	shadow_shader->uniform.light_view_mat = light_view_mat;
-	shadow_shader->uniform.light_perspective_mat = light_perspective_mat;
-	shadow_shader->uniform.light_vp_mat = light_perspective_mat * light_view_mat;
-
-	shadow_shader->uniform.model_mat = model_mat;
-	shadow_shader->uniform.normal_mat = normal_mat;
-	shadow_shader->uniform.view_mat = light_view_mat;
-	shadow_shader->uniform.perspective_mat = light_perspective_mat;
-	shadow_shader->uniform.vp_mat = light_perspective_mat * light_view_mat;
-
+		model_mat = mat4::identity();
+		shadow_shader->uniform.model_mat = model_mat;
+		shadow_shader->uniform.normal_mat = normal_mat;
+		shadow_shader->uniform.view_mat = light_view_mat;
+		shadow_shader->uniform.perspective_mat = light_perspective_mat;
+		shadow_shader->uniform.vp_mat = light_perspective_mat * light_view_mat;
+	// 
 
 
 
@@ -232,7 +257,7 @@ int main()
 	// -----------
 	int num_frames = 0;
 	float print_time = platform_get_time();
-
+	int curfps = -1;
 
 	while (!window->is_close)
 	{
@@ -242,31 +267,49 @@ int main()
 		clear_framebuffer(width, height, depthbuffer);
 		clear_zbuffer(width, height, zbuffer);
 
+		// 渲染深度值，放在depthbuffer中
 		model_draw(depthbuffer, zbuffer, shadow_shader);
 		
 
 		// clear buffer
 		clear_framebuffer(width, height, framebuffer);
 		clear_zbuffer(width, height, zbuffer);
-
 		// handle events and update view, perspective matrix
 		handle_events(camera);
 		update_matrix(camera, view_mat, perspective_mat, shader);
+		update_matrix(camera, view_mat, perspective_mat, light_shader);
+
+		// 渲染光源
+		model_draw(framebuffer, zbuffer, light_shader);
 
 		shader->uniform.depthbuffer = depthbuffer;
+		// 渲染cube
+		shader->attribute.vertexs = vertexs_cube;
+		shader->attribute.normals = normals_cube;
+		shader->attribute.m = m_cube;
+		model_draw(framebuffer, zbuffer, shader);
+
+
+		// 渲染floor
+		shader->attribute.vertexs = vertexs_floor;
+		shader->attribute.normals = normals_floor;
+		shader->attribute.m = m_floor;
 		model_draw(framebuffer, zbuffer, shader);
 
 
 		// calculate and display FPS
 		num_frames += 1;
+		
 		if (curr_time - print_time >= 1) {
 			int sum_millis = (int)((curr_time - print_time) * 1000);
 			int avg_millis = sum_millis / num_frames;
 			printf("fps: %3d, avg: %3d ms\n", num_frames, avg_millis);
+			curfps = num_frames;
 			num_frames = 0;
 			print_time = curr_time;
+			
 		}
-
+		 
 		// reset mouse information
 		window->mouse_info.wheel_delta = 0;
 		window->mouse_info.orbit_delta = vec2(0, 0);
@@ -274,7 +317,7 @@ int main()
 
 		// send framebuffer to window 
 		//window_draw(depthbuffer);
-		window_draw(framebuffer);
+		window_draw(framebuffer, curfps);
 		msg_dispatch();
 	}
 
