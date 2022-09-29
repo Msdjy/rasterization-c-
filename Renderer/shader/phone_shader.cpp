@@ -51,7 +51,7 @@ vec3 PhoneShader::fragment_shader() {
 		// 点光源的方向
 		//vec3 light_dir = normalize(light->position - varying.position);
 		// 方向光的方向
-		vec3 light_dir = normalize(light->position);
+		vec3 light_dir = normalize(light.position);
 		vec3 half_dir = normalize(light_dir + view_dir);
 		
 		float bias = std::max(0.01 * (1.0 - dot(varying.Normal, light_dir)), 0.001);
@@ -63,13 +63,13 @@ vec3 PhoneShader::fragment_shader() {
 
 		float visibility = shadow_visibility(shadowCoord, uniform.depthbuffer, bias);
 
-		float distance = (light->position - varying.FragPos).norm();
-		float attenuation = 1.0 / (light->constant + light->linear * distance + light->quadratic * (distance * distance));
+		float distance = (light.position - varying.FragPos).norm();
+		float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
 
 		float diff = std::max(dot(light_dir, varying.Normal), 0.0);
 		float spec = pow(std::max(dot(half_dir, varying.Normal), 0.0), 12.80f / (attribute.m.roughness));
 
-		color += (spec + diff * diffuse)* light->power * attenuation * visibility;
+		color += (spec + diff * diffuse)* light.power * attenuation * visibility;
 
 		/*color = attribute.m.eval(light_dir, view_dir, varying.Normal) * light->power * attenuation * visibility;*/
 	}

@@ -132,6 +132,7 @@ vec3 unit_vector(const vec3 &v);
 vec3 normalize(const vec3 &v);
 vec3 cwise_product(const vec3& a, const vec3& b);
 
+
 /* vec4 related functions */
 std::ostream& operator<<(std::ostream &out, const vec4 &v);
 vec4 to_vec4(const vec3 &u, float w);

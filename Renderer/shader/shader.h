@@ -50,7 +50,7 @@ struct payload_uniform {
 	unsigned char* depthbuffer;
 
 	// light
-	std::vector<Light*> lights;
+	std::vector<Light> lights;
 
 	// camera
 	Camera* camera;
@@ -102,7 +102,7 @@ public:
 	payload_varying varying;
 	payload_gl gl;
 
-	bool is_shadow_shader = false;
+	bool is_shadow_shader;
 
 	virtual void vertex_shader() {};
 	virtual vec3 fragment_shader() { return vec3(); };
@@ -123,18 +123,20 @@ public:
 };
 
 class PhoneShader : public IShader{
-	bool is_shadow_shader = false;
 	void vertex_shader();
 	vec3 fragment_shader();
+
 };
 class ShadowShader : public IShader {
-	bool is_shadow_shader = true;
+public:
+	ShadowShader() {
+		this->is_shadow_shader = true;
+	}
 	void vertex_shader();
 	vec3 fragment_shader();
 };
 
 class PBRShader : public IShader {
-	bool is_shadow_shader = false;
 	void vertex_shader();
 	vec3 fragment_shader();
 };

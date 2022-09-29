@@ -50,7 +50,7 @@ vec3 PBRShader::fragment_shader() {
 		// 点光源的方向
 		//vec3 light_dir = normalize(light->position - varying.position);
 		// 方向光的方向
-		vec3 light_dir = normalize(light->position);
+		vec3 light_dir = normalize(light.position);
 
 		float bias = std::max(0.01 * (1.0 - dot(varying.Normal, light_dir)), 0.001);
 		vec4 mvp_from_light = varying.Position_From_Light;
@@ -61,10 +61,10 @@ vec3 PBRShader::fragment_shader() {
 
 		float visibility = shadow_visibility(shadowCoord, uniform.depthbuffer, bias);
 
-		float distance = (light->position - varying.FragPos).norm();
-		float attenuation = 1.0 / (light->constant + light->linear * distance + light->quadratic * (distance * distance));
+		float distance = (light.position - varying.FragPos).norm();
+		float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
 
-		color += attribute.m.eval(-view_dir, light_dir, varying.Normal) * light->power * attenuation * visibility;
+		color += attribute.m.eval(-view_dir, light_dir, varying.Normal) * light.power * attenuation * visibility;
 	}
 
 	color[0] = pow(color[0] / (color[0] + 1.0f), 1.0f / 2.2);

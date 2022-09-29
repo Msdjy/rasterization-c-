@@ -207,6 +207,9 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
         if (  (is_back_pace(NDC_vertexs3) && (!shader->is_shadow_shader) ) || (is_front_pace(NDC_vertexs3) && (shader->is_shadow_shader)) ) {
             continue;
         }
+        if ((is_back_pace(NDC_vertexs3) && (!shader->is_shadow_shader)) || (is_front_pace(NDC_vertexs3) && (shader->is_shadow_shader))) {
+            continue;
+        }
 
         // 选取三角形三个点的不同坐标空间下的值NDC_vertexs3，screen_vertex3等
         vec3 screen_vertex3[3] = { screen_vertexs[id + 0], screen_vertexs[id + 1], screen_vertexs[id + 2] };

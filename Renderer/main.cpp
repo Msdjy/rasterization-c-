@@ -28,6 +28,7 @@ enum RenderType { RASTERIZER, RAYTRACING, PATHTRACING};
 void clear_zbuffer(int width, int height, float* zbuffer);
 void clear_framebuffer(int width, int height, unsigned char* framebuffer);
 void update_matrix(Camera& camera, mat4& view_mat, mat4& perspective_mat, IShader* shader);
+void update_light_matrix(Camera& camera, Light& light, mat4& view_mat, mat4& perspective_mat, IShader* shader);
 
 //constexpr Material      ivory = { 1.0, {0.9,  0.5, 0.1, 0.0}, {0.4, 0.4, 0.3},   50. };
 //constexpr Material      glass = { 1.5, {0.0,  0.9, 0.1, 0.8}, {0.6, 0.7, 0.8},  125. };
@@ -140,9 +141,9 @@ int main()
 
 
 	// light
-	Light* light1 = new Light;
-	light1->position = vec3(-7, 5, 5);
-	light1->power = vec3(3, 3, 3);
+	Light light1;
+	light1.position = vec3(-7, 5, 5);
+	light1.power = vec3(3, 3, 3);
 	
 	// create camera
 	vec3 eye(3, 3, 15);
@@ -179,11 +180,12 @@ int main()
 	mat4 light_view_mat;
 	mat4 light_perspective_mat;
 
-	light_view_mat = mat4_lookat(light1->position, camera.target, camera.up);
+	light_view_mat = mat4_lookat(light1.position, camera.target, camera.up);
 	//light_perspective_mat = mat4_perspective(fov, aspect, zNear, zFar);
 	// TODO 判断方向光和点光源
 	ortho_mat = mat4_ortho(-10.0f * aspect, 10.0f * aspect, -10.0f, 10.0f, zNear, zFar);
-	light_perspective_mat = ortho_mat ;
+	light_perspective_mat = ortho_mat;
+	//light_perspective_mat = mat4_ortho(left, right, bottom, top, zNear, zFar) * mat4_perspective(fov, aspect, zNear, zFar);;
 
 
 	// shader payload
@@ -192,7 +194,7 @@ int main()
 	//IShader* shader = new PhoneShader();
 	IShader* shadow_shader = new ShadowShader();
 	IShader* light_shader = new LightShader();
-
+	std::cout << shadow_shader->is_shadow_shader << std::endl;
 
 	// 物体渲染所需要的参数
 		shader->uniform.lights.push_back(light1);
@@ -210,9 +212,10 @@ int main()
 	// 
 
 	// 光源渲染所需要的参数
+		light_shader->uniform.lights.push_back(light1);
 		light_shader->uniform.camera = &camera;
 		model_mat = mat4_scale(0.5,0.5,0.5);
-		model_mat = mat4_translate(light1->position.x(), light1->position.y(), light1->position.z()) * model_mat;
+		model_mat = mat4_translate(light1.position.x(), light1.position.y(), light1.position.z()) * model_mat;
 		light_shader->uniform.model_mat = model_mat;
 		light_shader->uniform.normal_mat = normal_mat;
 		light_shader->uniform.view_mat = view_mat;
@@ -259,14 +262,29 @@ int main()
 	int num_frames = 0;
 	float print_time = platform_get_time();
 	int curfps = -1;
-
+	int timecnt = 0;
 	while (!window->is_close)
 	{
+		timecnt++;
 		float curr_time = platform_get_time();
 
 		// clear buffer
 		clear_framebuffer(width, height, depthbuffer);
 		clear_zbuffer(width, height, zbuffer);
+
+		// 更新光源位置
+		//light1->position += vec3(-0.1);
+		light1.position = mat4_rotate_y(float(1)) * light1.position;
+		model_mat = mat4_scale(0.5, 0.5, 0.5);
+		model_mat = mat4_translate(light1.position.x(), light1.position.y(), light1.position.z()) * model_mat;
+		//model_mat = mat4_rotate_y(timecnt) * model_mat;
+		//model_mat = mat4_rotate_x(timecnt) * model_mat;
+		light_shader->uniform.model_mat = model_mat;
+		
+		//light_shader->uniform.
+		update_light_matrix(camera, light1, light_view_mat, light_perspective_mat, shader);
+		//update_light_matrix(camera, light1, light_view_mat, light_perspective_mat, light_shader);
+		update_light_matrix(camera, light1, light_view_mat, light_perspective_mat, shadow_shader);
 
 		// 渲染深度值，放在depthbuffer中
 		model_draw(depthbuffer, zbuffer, shadow_shader);
@@ -317,7 +335,7 @@ int main()
 		window->mouse_info.fv_delta = vec2(0, 0);
 
 		// send framebuffer to window 
-		//window_draw(depthbuffer);
+		//window_draw(depthbuffer, curfps);
 		window_draw(framebuffer, curfps);
 		msg_dispatch();
 	}
@@ -361,4 +379,19 @@ void update_matrix(Camera& camera, mat4& view_mat, mat4& perspective_mat, IShade
 
 	shader->uniform.view_mat = view_mat;
 	shader->uniform.vp_mat = vp;
+}
+
+void update_light_matrix(Camera& camera, Light& light,  mat4& view_mat, mat4& perspective_mat, IShader* shader) {
+	//TODO
+	view_mat = mat4_lookat(light.position, camera.target, camera.up);
+	mat4 vp = perspective_mat * view_mat;
+
+	shader->uniform.light_view_mat = view_mat;
+	shader->uniform.light_vp_mat = vp;
+	shader->uniform.lights[0] = light;
+	if (shader->is_shadow_shader) {
+		shader->uniform.view_mat = view_mat;
+		shader->uniform.vp_mat = vp;
+		//shader->uniform.lights[0] = light;
+	}
 }
