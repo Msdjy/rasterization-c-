@@ -213,9 +213,9 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
         }
 
 
-        vec4 position3[3] = { shader->gl.positions[id + 0], shader->gl.positions[id + 1], shader->gl.positions[id + 2] };
-        vec3 normal3[3] = { shader->varying.normals[id + 0], shader->varying.normals[id + 1], shader->varying.normals[id + 2] };
-        vec3 fragpose3[3] = { shader->varying.fragposes[id + 0], shader->varying.fragposes[id + 1], shader->varying.fragposes[id + 2] };
+        vec4 position3[3]            = { shader->gl.positions[id + 0], shader->gl.positions[id + 1], shader->gl.positions[id + 2] };
+        vec3 normal3[3]              = { shader->varying.normals[id + 0], shader->varying.normals[id + 1], shader->varying.normals[id + 2] };
+        vec3 fragpose3[3]            = { shader->varying.fragposes[id + 0], shader->varying.fragposes[id + 1], shader->varying.fragposes[id + 2] };
         vec4 position3_from_light[3] = { shader->varying.positions_from_light[id + 0], shader->varying.positions_from_light[id + 1], shader->varying.positions_from_light[id + 2] };
 
 
@@ -232,21 +232,9 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
                     // 修正用了真实空间的深度值，mvp空间的w值齐次坐标
                     float normalizer = 1.0 / (alpha / position3[0].w() + beta / position3[1].w() + gamma / position3[2].w());
 
-                    //for larger z means away from camera, needs to interpolate z-value as a property
-                    // 计算插值点的gl.FragCoord   
-                    // 用世界坐标插值好再mvp是ok的
-                    //vec3 vertex3[3] = {  shader->attribute.vertexs[id + 0], shader->attribute.vertexs[id + 1],shader->attribute.vertexs[id + 2] };
-                    //auto world_pos = interpolate(alpha, beta, gamma, vertex3, position3, normalizer);
-
-
-                    // 直接screen_vertex3插值ok的
+                    //for larger z means away from camera, needs to interpolate z-value as a property 
                     shader->gl.FragCoord = alpha * screen_vertex3[0] + beta * screen_vertex3[1]  + gamma * screen_vertex3[2] ;
                     shader->gl.FragCoord[3] = 1 / normalizer;
-                    // 反推其他空间的坐标需要这个w值
-                    //shader->gl.FragCoord[3] = 1 / mvp_.w();
-                    //shader->gl.FragCoord[3] = normalizer;
-                    
-
 
                     float depth = shader->gl.FragCoord.z();
                     if (zbuffer[get_index(i, j)] > depth) {
@@ -255,8 +243,6 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
                         // 插值法向量，世界空间坐标，uv
                         shader->varying.Normal = interpolate(alpha, beta, gamma, normal3, position3, normalizer);
                         shader->varying.FragPos = interpolate(alpha, beta, gamma, fragpose3, position3, normalizer);
-                        // mvp空间的东西也可以这样插值
-                        // 甚至light_mvp的也可以
                         shader->varying.Position_From_Light = interpolate(alpha, beta, gamma, position3_from_light, position3, normalizer);
 
                         // 片段着色器一般需要的变量

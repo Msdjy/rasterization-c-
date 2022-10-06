@@ -18,11 +18,11 @@ void PhoneShader::vertex_shader() {
 	
 	for (int i = 0; i < attribute.vertexs.size(); i++) {
 		gl.positions[i] = uniform.vp_mat * uniform.model_mat * vec4(attribute.vertexs[i], 1.0f);
-		// view空间坐标应该没用到
-		//payload_shader.view_vertexs[j] = payload_shader.view_mat * vertexs[j];
+
 		varying.normals[i] = to_vec3(uniform.normal_mat * vec4(attribute.normals[i], 1.0f));
 
 		varying.positions_from_light[i] = uniform.light_vp_mat * uniform.model_mat * vec4(attribute.vertexs[i], 1.0f);
+
 		varying.fragposes[i] = to_vec3(uniform.model_mat * vec4(attribute.vertexs[i], 1.0f));
 	}
 }

@@ -27,6 +27,5 @@ void LightShader::vertex_shader() {
 vec4 LightShader::fragment_shader() {
 	vec4 color(1,1,1,1);
 
-
 	return color;
 }
