@@ -19,13 +19,13 @@ void LightShader::vertex_shader() {
 	// only model matrix can change normal vector in world space ( Normal Matrix: tranverse(inverse(model)) )
 
 	for (int i = 0; i < attribute.vertexs.size(); i++) {
-		gl.positions[i] = uniform.vp_mat * uniform.model_mat * vec4(attribute.vertexs[i]);
+		gl.positions[i] = uniform.vp_mat * uniform.model_mat * vec4(attribute.vertexs[i], 1.0f);
 	}
 }
 
 
-vec3 LightShader::fragment_shader() {
-	vec3 color(1);
+vec4 LightShader::fragment_shader() {
+	vec4 color(1,1,1,1);
 
 
 	return color;

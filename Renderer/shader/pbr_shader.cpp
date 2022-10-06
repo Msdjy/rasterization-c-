@@ -17,24 +17,27 @@ void PBRShader::vertex_shader() {
 	// only model matrix can change normal vector in world space ( Normal Matrix: tranverse(inverse(model)) )
 
 	for (int i = 0; i < attribute.vertexs.size(); i++) {
-		gl.positions[i] = uniform.vp_mat * uniform.model_mat * vec4(attribute.vertexs[i]);
+		gl.positions[i] = uniform.vp_mat * uniform.model_mat * vec4(attribute.vertexs[i], 1.0f);
 		// view空间坐标应该没用到
 		//payload_shader.view_vertexs[j] = payload_shader.view_mat * vertexs[j];
-		varying.normals[i] = uniform.normal_mat * vec4(attribute.normals[i]);
+		varying.normals[i] = to_vec3(uniform.normal_mat * vec4(attribute.normals[i], 1.0f));
 
-		varying.positions_from_light[i] = vec3(uniform.light_vp_mat * uniform.model_mat * vec4(attribute.vertexs[i]));
-		varying.fragposes[i] = vec3(uniform.model_mat * vec4(attribute.vertexs[i]));
+		// 这个没用到，目前在管线做了
+		varying.positions_from_light[i] = uniform.light_vp_mat * uniform.model_mat * vec4(attribute.vertexs[i], 1.0f);
+
+		varying.fragposes[i] = to_vec3(uniform.model_mat * vec4(attribute.vertexs[i], 1.0f));
 	}
 }
 
 
-vec3 PBRShader::fragment_shader() {
+vec4 PBRShader::fragment_shader() {
 	//插值
 		//顶点法向量
 		//顶点vu值
 		//纹理
 	//光源
 	//相机位姿
+	//return gl.FragCoord.z();
 	vec3 view_pos = uniform.camera->eye;
 	vec3 view_dir = normalize(view_pos - varying.FragPos);
 
@@ -70,5 +73,5 @@ vec3 PBRShader::fragment_shader() {
 	color[0] = pow(color[0] / (color[0] + 1.0f), 1.0f / 2.2);
 	color[1] = pow(color[1] / (color[1] + 1.0f), 1.0f / 2.2);
 	color[2] = pow(color[2] / (color[2] + 1.0f), 1.0f / 2.2);
-	return color;
+	return vec4(color, 1.0f);
 }

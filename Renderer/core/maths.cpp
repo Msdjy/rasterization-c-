@@ -54,7 +54,8 @@ vec2 operator/(vec2 v, double t)
 vec3::vec3() : e{ 0,0,0 } {}
 vec3::vec3(float e0, float e1, float e2) : e{ e0,e1,e2 } {}
 vec3::vec3(float e) : e{ e,e,e } {}
-vec3::vec3(vec4 v4) : e{v4.x(), v4.y(), v4.z()} {}
+//vec3::vec3(vec4 v4) : e{v4.x(), v4.y(), v4.z()} {}
+vec3 to_vec3(const vec4& u);
 float vec3::x() const { return e[0]; }
 float vec3::y() const { return e[1]; }
 float vec3::z() const { return e[2]; }
@@ -71,6 +72,10 @@ float vec3::norm() const{	return sqrt(norm_squared());}
 std::ostream& operator<<(std::ostream &out, const vec3 &v) 
 {
 	return out << v.e[0] << ' ' << v.e[1] << ' ' << v.e[2];
+}
+
+vec3 to_vec3(const vec4& u) {
+	return vec3(u[0], u[1], u[2]);
 }
 
 vec3 operator+(const vec3 &u, const vec3 &v) 
@@ -103,12 +108,21 @@ vec3 operator/(vec3 v, double t)
 	return (1 / t) * v;
 }
 
-double dot(const vec3 &u, const vec3 &v)
+double dot(const vec3& u, const vec3& v)
 {
 	return u.e[0] * v.e[0]
 		+ u.e[1] * v.e[1]
 		+ u.e[2] * v.e[2];
 }
+
+double dot(const vec4& u, const vec4& v)
+{
+	return u.e[0] * v.e[0]
+		+ u.e[1] * v.e[1]
+		+ u.e[2] * v.e[2]
+		+ u.e[3] * v.e[3];
+}
+
 
 vec3 cross(const vec3 &u, const vec3 &v) 
 {
@@ -154,11 +168,6 @@ vec4 to_vec4(const vec3 &u, float w)
 	return vec4(u[0], u[1], u[2], w);
 }
 
-vec3 to_vec3(const vec4& u)
-{
-	return vec3(u[0], u[1], u[2]);
-}
-
 std::ostream& operator<<(std::ostream &out, const vec4 &v)
 {
 	return out << v[0] << " " << v[1] << " " << v[2] << " " << v[3];
@@ -187,6 +196,11 @@ vec4 operator*(const vec4 &v, double t)
 vec4 operator*(const vec4& u, const vec4& v)
 {
 	return vec4(u.e[0] * v.e[0], u.e[1] * v.e[1], u.e[2] * v.e[2], u.e[3] * v.e[3]);
+}
+
+vec4 operator/(vec4 v, double t)
+{
+	return (1 / t) * v;
 }
 
 /* mat3 class member functions */

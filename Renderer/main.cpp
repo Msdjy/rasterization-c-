@@ -274,7 +274,7 @@ int main()
 
 		// 更新光源位置
 		//light1->position += vec3(-0.1);
-		light1.position = mat4_rotate_y(float(1)) * light1.position;
+		light1.position = to_vec3(mat4_rotate_y(float(1)) * vec4(light1.position, 1.0f));
 		model_mat = mat4_scale(0.5, 0.5, 0.5);
 		model_mat = mat4_translate(light1.position.x(), light1.position.y(), light1.position.z()) * model_mat;
 		//model_mat = mat4_rotate_y(timecnt) * model_mat;

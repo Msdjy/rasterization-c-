@@ -170,10 +170,15 @@ static std::tuple<int, int, int, int> get_AABB(vec3 screen_vertex3[])
 
     return {minx, maxx, miny, maxy};
 }
-static vec3 interpolate(float alpha, float beta, float gamma, const vec3(& vert3)[], const vec4(&mvp_vertex3)[], float weight)
+vec3 interpolate(float alpha, float beta, float gamma, const vec3(&vert3)[], const vec4(&mvp_vertex3)[], float weight)
 {
     return (alpha * vert3[0] / mvp_vertex3[0].w() + beta * vert3[1] / mvp_vertex3[1].w() + gamma * vert3[2] / mvp_vertex3[2].w() ) * weight;
     //return (alpha * vert3[0] + beta * vert3[1] + gamma * vert3[2]  ) * weight;
+}
+
+vec4 interpolate(float alpha, float beta, float gamma, const vec4(&vert3)[], const vec4(&mvp_vertex3)[], float weight)
+{
+    return (alpha * vert3[0] / mvp_vertex3[0].w() + beta * vert3[1] / mvp_vertex3[1].w() + gamma * vert3[2] / mvp_vertex3[2].w()) * weight;
 }
 
 
@@ -192,8 +197,7 @@ static vec3 interpolate(float alpha, float beta, float gamma, const vec3(& vert3
 // OpenGL会使用glViewPort内部的参数来将标准化设备坐标映射到屏幕坐标，每个坐标都关联了一个屏幕上的点（在我们的例子中是一个800x600的屏幕）。这个过程称为视口变换。
 
 // 光栅化
-static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader, 
-    std::vector<vec3>& NDC_vertexs,  std::vector<vec3>& screen_vertexs) {
+static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader, std::vector<vec3>& screen_vertexs) {
 
     int n = shader->attribute.vertexs.size();
 
@@ -201,23 +205,18 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
     for (int id = 0; id < n; id = id + 3)
     {
         // 选取三角形三个点的不同坐标空间下的值NDC_vertexs3，screen_vertex3等
-        vec3 NDC_vertexs3[3] = { NDC_vertexs[id + 0], NDC_vertexs[id + 1], NDC_vertexs[id + 2] };
+        vec3 screen_vertex3[3] = { screen_vertexs[id + 0], screen_vertexs[id + 1], screen_vertexs[id + 2] };
 
         // 背面剔除 / 渲染depthbuffer时正面剔除
-        if (  (is_back_pace(NDC_vertexs3) && (!shader->is_shadow_shader) ) || (is_front_pace(NDC_vertexs3) && (shader->is_shadow_shader)) ) {
-            continue;
-        }
-        if ((is_back_pace(NDC_vertexs3) && (!shader->is_shadow_shader)) || (is_front_pace(NDC_vertexs3) && (shader->is_shadow_shader))) {
+        if (  (is_back_pace(screen_vertex3) && (!shader->is_shadow_shader) ) || (is_front_pace(screen_vertex3) && (shader->is_shadow_shader)) ) {
             continue;
         }
 
-        // 选取三角形三个点的不同坐标空间下的值NDC_vertexs3，screen_vertex3等
-        vec3 screen_vertex3[3] = { screen_vertexs[id + 0], screen_vertexs[id + 1], screen_vertexs[id + 2] };
 
         vec4 position3[3] = { shader->gl.positions[id + 0], shader->gl.positions[id + 1], shader->gl.positions[id + 2] };
         vec3 normal3[3] = { shader->varying.normals[id + 0], shader->varying.normals[id + 1], shader->varying.normals[id + 2] };
         vec3 fragpose3[3] = { shader->varying.fragposes[id + 0], shader->varying.fragposes[id + 1], shader->varying.fragposes[id + 2] };
-        vec3 position3_from_light[3] = { shader->varying.positions_from_light[id + 0], shader->varying.positions_from_light[id + 1], shader->varying.positions_from_light[id + 2] };
+        vec4 position3_from_light[3] = { shader->varying.positions_from_light[id + 0], shader->varying.positions_from_light[id + 1], shader->varying.positions_from_light[id + 2] };
 
 
         // AABB BOX
@@ -231,22 +230,23 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
                 if (alpha > 0 && beta > 0 && gamma > 0) {
                     // interpolation correct term
                     // 修正用了真实空间的深度值，mvp空间的w值齐次坐标
-                    float normalizer = 1.0 / (alpha / position3[0].w()
-                                            + beta  / position3[1].w()
-                                            + gamma / position3[2].w());
+                    float normalizer = 1.0 / (alpha / position3[0].w() + beta / position3[1].w() + gamma / position3[2].w());
 
-                    //for larger z means away from camera, needs to interpolate z-value as a property			
-                    // TODO（屏幕空间深度值应该可以直接用世界坐标的深度值算出来）
+                    //for larger z means away from camera, needs to interpolate z-value as a property
                     // 计算插值点的gl.FragCoord   
-                    vec3 vertex3[3] = { shader->attribute.vertexs[id + 0], shader->attribute.vertexs[id + 1], shader->attribute.vertexs[id + 2] };
-                    auto world_pos = interpolate(alpha, beta, gamma, vertex3, position3, normalizer);
-                    auto mvp_ = shader->uniform.vp_mat * shader->uniform.model_mat * world_pos;
-                    auto ndc_ = mvp_ / mvp_.w();
-                    shader->gl.FragCoord[0] = (float)i + 0.5;
-                    shader->gl.FragCoord[1] = (float)j + 0.5;
-                    shader->gl.FragCoord[2] = 0.5 * ndc_[2] + 0.5;
-                    shader->gl.FragCoord[2] = 1 - shader->gl.FragCoord[2];
-                    shader->gl.FragCoord[3] = 1 / mvp_.w();
+                    // 用世界坐标插值好再mvp是ok的
+                    //vec3 vertex3[3] = {  shader->attribute.vertexs[id + 0], shader->attribute.vertexs[id + 1],shader->attribute.vertexs[id + 2] };
+                    //auto world_pos = interpolate(alpha, beta, gamma, vertex3, position3, normalizer);
+
+
+                    // 直接screen_vertex3插值ok的
+                    shader->gl.FragCoord = alpha * screen_vertex3[0] + beta * screen_vertex3[1]  + gamma * screen_vertex3[2] ;
+                    shader->gl.FragCoord[3] = 1 / normalizer;
+                    // 反推其他空间的坐标需要这个w值
+                    //shader->gl.FragCoord[3] = 1 / mvp_.w();
+                    //shader->gl.FragCoord[3] = normalizer;
+                    
+
 
                     float depth = shader->gl.FragCoord.z();
                     if (zbuffer[get_index(i, j)] > depth) {
@@ -255,8 +255,10 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
                         // 插值法向量，世界空间坐标，uv
                         shader->varying.Normal = interpolate(alpha, beta, gamma, normal3, position3, normalizer);
                         shader->varying.FragPos = interpolate(alpha, beta, gamma, fragpose3, position3, normalizer);
+                        // mvp空间的东西也可以这样插值
+                        // 甚至light_mvp的也可以
                         shader->varying.Position_From_Light = interpolate(alpha, beta, gamma, position3_from_light, position3, normalizer);
-                        
+
                         // 片段着色器一般需要的变量
                         //插值
                             //顶点法向量
@@ -294,12 +296,14 @@ void model_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader) {
     for (int i = 0; i < n; i++)
     {
         // TODO 裁剪
+        // 裁切过程运行在每个三角形之上；这个过程可能生成新的顶点。
+        // 在裁切坐标空间（clip coordinate space）运行线性插值来确定每个新顶点的裁切坐标和变异变量（varying variables）值。
         // 太过靠近物体有问题,透视除法除0问题
 
 
         // NDC transformation
         // homogeneous division
-        NDC_vertexs[i] = vec3(shader->gl.positions[i]) / shader->gl.positions[i].w();
+        NDC_vertexs[i] = to_vec3(shader->gl.positions[i] / shader->gl.positions[i].w());
 
         // 屏幕空间映射
         screen_vertexs[i][0] = (WINDOW_WIDTH - 1) * (0.5 * NDC_vertexs[i][0] + 0.5);
@@ -310,7 +314,7 @@ void model_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader) {
         screen_vertexs[i][2] = 1 - screen_vertexs[i][2];
     }
 
-    triangle_draw(framebuffer, zbuffer, shader, NDC_vertexs, screen_vertexs);
+    triangle_draw(framebuffer, zbuffer, shader, screen_vertexs);
 
 }
 

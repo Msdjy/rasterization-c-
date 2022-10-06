@@ -59,14 +59,14 @@ struct payload_varying {
 
 	// vertex_shader - output
 	std::vector<vec3> fragposes;
-	std::vector<vec3> positions_from_light;
+	std::vector<vec4> positions_from_light;
 	std::vector<vec3> normals;
 	//std::vector<vec3> texcoordss;
 
 	// world space point attributes
 	// fragment_shader - input
 	vec3 FragPos;
-	vec3 Position_From_Light;
+	vec4 Position_From_Light;
 	vec3 Normal;
 	//vec2 texcoords;
 };
@@ -105,7 +105,7 @@ public:
 	bool is_shadow_shader;
 
 	virtual void vertex_shader() {};
-	virtual vec3 fragment_shader() { return vec3(); };
+	virtual vec4 fragment_shader() { return vec4(); };
 
 	vec4 fract(vec4 vector4);
 
@@ -124,7 +124,7 @@ public:
 
 class PhoneShader : public IShader{
 	void vertex_shader();
-	vec3 fragment_shader();
+	vec4 fragment_shader();
 
 };
 class ShadowShader : public IShader {
@@ -133,14 +133,14 @@ public:
 		this->is_shadow_shader = true;
 	}
 	void vertex_shader();
-	vec3 fragment_shader();
+	vec4 fragment_shader();
 };
 
 class PBRShader : public IShader {
 	void vertex_shader();
-	vec3 fragment_shader();
+	vec4 fragment_shader();
 };
 class LightShader : public IShader {
 	void vertex_shader();
-	vec3 fragment_shader();
+	vec4 fragment_shader();
 };

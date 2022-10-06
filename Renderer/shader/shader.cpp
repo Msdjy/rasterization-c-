@@ -91,7 +91,8 @@ float IShader::PCF(vec3 shadowCoord, unsigned char* depthbuffer, float bias) {
 			cnt++;
 			float depth = unpack(get_color(depthbuffer, x + i, y + j));
 			//float depth = get_depth(shadowCoord + vec3(i, j, 0), depthbuffer);
-			if (depth > shadowCoord.z() - 2 * bias)visibility += 1.0f;
+			//if (depth > shadowCoord.z() - 2 * bias)visibility += 1.0f;
+			if (depth > shadowCoord.z())visibility += 1.0f;
 		}
 	}
 

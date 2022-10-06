@@ -35,7 +35,10 @@ public:
 	vec3();
 	vec3(float e0, float e1, float e2);
 	vec3(float e);
-	vec3(vec4 v4);
+
+	// 直接转换会有问题，有些默认是vec4会自动转vec3，因为没有vec4重载运算符的时候而vec3重载了的时候，vec4会转vec3，
+	//vec3(vec4 v4);
+	
 
 	float x() const;
 	float y() const;
@@ -59,7 +62,7 @@ class vec4 {
 public:
 	vec4();
 	vec4(float e0, float e1, float e2, float e3);
-	vec4(vec3 v3, float e3 = 1.0f);
+	vec4(vec3 v3, float e3);
 	
 
 	float x() const;
@@ -120,6 +123,7 @@ vec2 operator/(vec2 v, double t);
 
 /* vec3 related functions */
 std::ostream& operator<<(std::ostream &out, const vec3 &v);
+vec3 to_vec3(const vec4& u);
 vec3 operator+(const vec3 &u, const vec3 &v);
 vec3 operator-(const vec3 &u, const vec3 &v);
 vec3 operator*(const vec3 &u, const vec3 &v);
@@ -141,6 +145,8 @@ vec4 operator+(const vec4 &u, const vec4 &v);
 vec4 operator*(double t, const vec4 &v);
 vec4 operator*(const vec4 &v, double t);
 vec4 operator*(const vec4& u, const vec4& v);
+vec4 operator/(vec4 v, double t);
+double dot(const vec4& u, const vec4& v);
 
 /* mat related functions */
 std::ostream& operator<<(std::ostream &out, const mat3 &m);
