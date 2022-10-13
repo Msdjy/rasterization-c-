@@ -43,8 +43,8 @@ vec4 PBRShader::fragment_shader() {
 	vec3 diffuse = attribute.m.albedo;
 
 	vec3 color(0, 0, 0);
-	vec3 amblient(0.1, 0.1, 0.1);
-	color += amblient * diffuse;
+	//vec3 amblient(0.1, 0.1, 0.1);
+	//color += amblient * diffuse;
 
 	//light
 	for (auto light : uniform.lights) {
