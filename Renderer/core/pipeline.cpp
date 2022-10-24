@@ -216,7 +216,7 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
         vec4 position3[3]            = { shader->gl.positions[id + 0], shader->gl.positions[id + 1], shader->gl.positions[id + 2] };
         vec3 normal3[3]              = { shader->varying.normals[id + 0], shader->varying.normals[id + 1], shader->varying.normals[id + 2] };
         vec3 fragpose3[3]            = { shader->varying.fragposes[id + 0], shader->varying.fragposes[id + 1], shader->varying.fragposes[id + 2] };
-        vec4 position3_from_light[3] = { shader->varying.positions_from_light[id + 0], shader->varying.positions_from_light[id + 1], shader->varying.positions_from_light[id + 2] };
+        //vec4 position3_from_light[3] = { shader->varying.positions_from_light[id + 0], shader->varying.positions_from_light[id + 1], shader->varying.positions_from_light[id + 2] };
 
 
         // AABB BOX
@@ -243,7 +243,7 @@ static void triangle_draw(unsigned char* framebuffer, float* zbuffer, IShader* s
                         // 插值法向量，世界空间坐标，uv
                         shader->varying.Normal = interpolate(alpha, beta, gamma, normal3, position3, normalizer);
                         shader->varying.FragPos = interpolate(alpha, beta, gamma, fragpose3, position3, normalizer);
-                        shader->varying.Position_From_Light = interpolate(alpha, beta, gamma, position3_from_light, position3, normalizer);
+                        //shader->varying.Position_From_Light = interpolate(alpha, beta, gamma, position3_from_light, position3, normalizer);
 
                         // 片段着色器一般需要的变量
                         //插值
@@ -271,7 +271,7 @@ void model_draw(unsigned char* framebuffer, float* zbuffer, IShader* shader) {
     shader->gl.positions.resize(n);
     shader->varying.normals.resize(n);
     shader->varying.fragposes.resize(n);
-    shader->varying.positions_from_light.resize(n);
+    //shader->varying.positions_from_light.resize(n);
 
     // 顶点着色器 mvp变换
     shader->vertex_shader();

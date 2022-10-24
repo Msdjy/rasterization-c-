@@ -21,7 +21,7 @@ void PBRShader::vertex_shader() {
 
 		varying.normals[i] = to_vec3(uniform.normal_mat * vec4(attribute.normals[i], 1.0f));
 
-		varying.positions_from_light[i] = uniform.light_vp_mat * uniform.model_mat * vec4(attribute.vertexs[i], 1.0f);
+		//varying.positions_from_light[i] = uniform.light_vp_mat * uniform.model_mat * vec4(attribute.vertexs[i], 1.0f);
 
 		varying.fragposes[i] = to_vec3(uniform.model_mat * vec4(attribute.vertexs[i], 1.0f));
 	}
@@ -43,8 +43,8 @@ vec4 PBRShader::fragment_shader() {
 	vec3 diffuse = attribute.m.albedo;
 
 	vec3 color(0, 0, 0);
-	//vec3 amblient(0.1, 0.1, 0.1);
-	//color += amblient * diffuse;
+	vec3 amblient(0.1, 0.1, 0.1);
+	color += amblient * diffuse;
 
 	//light
 	for (auto light : uniform.lights) {
@@ -54,7 +54,8 @@ vec4 PBRShader::fragment_shader() {
 		vec3 light_dir = normalize(light.position);
 
 		float bias = std::max(0.01 * (1.0 - dot(varying.Normal, light_dir)), 0.001);
-		vec4 mvp_from_light = varying.Position_From_Light;
+		vec4 mvp_from_light = uniform.light_vp_mat * vec4(varying.FragPos, 1.0);
+		//vec4 mvp_from_light = varying.Position_From_Light;
 
 		vec3 shadowCoord = mvp_from_light.xyz() / mvp_from_light.w();
 		shadowCoord = shadowCoord * 0.5 + 0.5;
